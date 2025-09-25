@@ -1,0 +1,42 @@
+import bpy
+
+# Укажи имена объектов
+RIG_NAME = "Genesis 8 Female_MHX"   # имя рига
+MESH_NAME = "Genesis 8 Female Mesh"      # имя меша, к которому применён Armature Modifier
+
+def main():
+    rig = bpy.data.objects.get(RIG_NAME)
+    mesh = bpy.data.objects.get(MESH_NAME)
+
+    if not rig or not mesh:
+        print("❌ Не найден риг или меш. Проверь имена объектов.")
+        return
+
+    # Перебираем все custom properties рига
+    for prop_name, prop_value in rig.items():
+        # Пропускаем служебные свойства (начинаются с "_RNA_UI")
+        if prop_name == "_RNA_UI":
+            continue
+
+        if type(rig[prop_name])==float:
+            rig[prop_name] = 0.0
+        elif type(rig[prop_name])==int:
+            rig[prop_name] = 0
+        bpy.context.view_layer.update()
+
+
+    # Принудительно обновляем драйверы
+    for obj in bpy.data.objects:
+        if obj.animation_data and obj.animation_data.drivers:
+            for fcurve in obj.animation_data.drivers:
+                fcurve.update()
+
+    # Принудительно обновляем зависимости через depsgraph
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    for obj in bpy.data.objects:
+        obj_eval = obj.evaluated_get(depsgraph)
+        obj_eval.update_tag()
+
+    print("🎉 Готово! Все свойства обработаны.")
+
+main()
