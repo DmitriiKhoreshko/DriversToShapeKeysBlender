@@ -51,6 +51,8 @@ def save_shape_keys_from_rig(mesh_name):
                 rig[prop_name] = 1.0
             elif type(rig[prop_name])==int:
                 rig[prop_name] = 1
+            else:
+                continue
             update_scene()
 
             # Выбираем меш
