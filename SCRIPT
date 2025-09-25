@@ -1,0 +1,81 @@
+import bpy
+
+MESH_NAME = "ИМЯ МЕША"  # Сюда вставить имя меша, в котором создавать shape keys, так же выбрать риг мышкой от которого переносить драйвера
+
+mesh = bpy.data.objects.get(MESH_NAME)
+
+def save_shape_keys_from_rig(mesh_name):
+    # Получаем активный объект (должен быть риг)
+    rig = bpy.context.active_object
+
+    if not rig or rig.type != 'ARMATURE':
+        print("Выбранный объект не является ригом.")
+        return
+
+    # Получаем меш по имени
+    mesh_obj = bpy.data.objects.get(mesh_name)
+    if not mesh_obj or mesh_obj.type != 'MESH':
+        print(f"Объект с именем '{mesh_name}' не найден или не является мешем.")
+        return
+
+    # Ищем модификатор рига
+    armature_mod = None
+    for mod in mesh_obj.modifiers:
+        if mod.type == 'ARMATURE':
+            armature_mod = mod
+            break
+
+    if not armature_mod:
+        print(f"У объекта '{mesh_name}' нет модификатора рига.")
+        return
+
+    # Функция обновления сцены и зависимостей
+    def update_scene():
+        bpy.context.view_layer.update()
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        for obj in bpy.data.objects:
+            if obj.animation_data and obj.animation_data.drivers:
+                for fcurve in obj.animation_data.drivers:
+                    fcurve.update()
+            obj_eval = obj.evaluated_get(depsgraph)
+            obj_eval.update_tag()
+
+    # Перебираем все кастомные свойства рига
+    for prop_name, value in rig.items():
+        # Проверяем, что свойство числовое
+        if isinstance(value, (int, float)):
+            print(f"Обработка свойства: {prop_name}")
+
+            # Устанавливаем значение в 1.0
+            if type(rig[prop_name])==float:
+                rig[prop_name] = 1.0
+            elif type(rig[prop_name])==int:
+                rig[prop_name] = 1
+            update_scene()
+
+            # Выбираем меш
+            bpy.context.view_layer.objects.active = mesh_obj
+            mesh_obj.select_set(True)
+
+            # Применяем модификатор как shape key
+            try:
+                bpy.ops.object.modifier_apply_as_shapekey(
+                    keep_modifier=True,
+                    modifier=armature_mod.name
+                )
+
+                sk = mesh.data.shape_keys.key_blocks[-1]
+                sk.name = prop_name
+
+            except Exception as e:
+                print(f"Ошибка при обработке '{prop_name}': {e}")
+
+            # Возвращаем значение в 0.0
+            if type(rig[prop_name])==float:
+                rig[prop_name] = 0.0
+            elif type(rig[prop_name])==int:
+                rig[prop_name] = 0
+            update_scene()
+
+# Пример вызова
+save_shape_keys_from_rig(MESH_NAME)
