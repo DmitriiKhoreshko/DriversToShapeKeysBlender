@@ -1,7 +1,7 @@
 import bpy
 
 # Укажи имена объектов
-MESH_NAME = "CHANGE_TO_MESH_NAME"      # имя меша, к которому применён Armature Modifier
+MESH_NAME = "Genesis 8 Female Mesh"      # имя меша, к которому применён Armature Modifier
 
 def cleanup(rigpointer):
     rig = rigpointer
@@ -123,5 +123,5 @@ def save_shape_keys_from_rig(mesh_name):
             update_scene()
     print("🎉 Готово! Все драйвера записаны!")
 
-# Пример вызова
+#Вызов
 save_shape_keys_from_rig(MESH_NAME)
