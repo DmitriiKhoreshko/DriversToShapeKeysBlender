@@ -1,0 +1,44 @@
+MESH_NAME = "Genesis 8 Female Eyelashes Mesh"
+
+
+def cleanup(MESH_NAME):
+    rig = bpy.context.active_object
+    mesh = bpy.data.objects.get(MESH_NAME)
+
+    if not rig or not mesh:
+        print("❌ Не найден риг или меш. Проверь имена объектов.")
+        return
+
+    #Обнуляем шейп кеи
+    for shape in mesh.data.shape_keys.key_blocks:
+        
+        print(f"- {shape.name}: {shape.value}")
+        if type(shape.value)==float:
+            shape.value = 0.0
+        elif type(shape.value)==int:
+            shape.value = 0
+        else:
+            continue
+    #Обнуляем драйвера
+    for prop_name, prop_value in rig.items():
+        # Пропускаем служебные свойства (начинаются с "_RNA_UI")
+        if prop_name == "_RNA_UI":
+            continue
+                
+        
+        if type(rig[prop_name])==float:
+            rig[prop_name] = 0.0
+        elif type(rig[prop_name])==int:
+            rig[prop_name] = 0
+        else:
+            continue
+    
+    bpy.context.view_layer.update()
+        
+    # Принудительно обновляем драйверы
+    for obj in bpy.data.objects:
+        if obj.animation_data and obj.animation_data.drivers:
+            for fcurve in obj.animation_data.drivers:
+                fcurve.update()
+
+    print("🎉 Готово! Все свойства обработаны.")
