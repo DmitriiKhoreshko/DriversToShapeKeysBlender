@@ -1,5 +1,6 @@
-MESH_NAME = "Genesis 8 Female Eyelashes Mesh"
+import bpy
 
+MESH_NAME = "Genesis 8 Female Mesh"
 
 def cleanup(MESH_NAME):
     rig = bpy.context.active_object
@@ -42,3 +43,5 @@ def cleanup(MESH_NAME):
                 fcurve.update()
 
     print("🎉 Готово! Все свойства обработаны.")
+    
+cleanup(MESH_NAME)
