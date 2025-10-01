@@ -1,23 +1,36 @@
+#SHAPE KEY TRANSFER SCRIPT
+
 import bpy
 
 # Укажи имена объектов
-source_name = "Genesis 8 Female Eyelashes Mesh.001"  # меш, который станет shape key
-MESH_NAME = "Genesis 8 Female Eyelashes Mesh"  # меш, к которому добавим shape key
+SOURCE_NAME = "Genesis 8 Female Mesh"  # SOURCE MESH ( for example female mesh )
+TARGET_NAME = "Suit Mesh"  # TARGET MESH ( for example clothes )
+
+
+KEY_WORDS=['PBM']# укажите, по каким признакам ограничить перенос драйверов, например приписка facs, PBM, eCTRL
 
 # Получаем объекты
-source = bpy.data.objects.get(source_name)
-target = bpy.data.objects.get(MESH_NAME)
+source = bpy.data.objects.get(SOURCE_NAME)
+target = bpy.data.objects.get(TARGET_NAME)
 
-key_words=['None']# укажите, по каким признакам ограничить перенос драйверов, например приписка facs, PBM, eCTRL
 
-def cleanup(rigpointer):
-    rig = rigpointer
-    mesh = bpy.data.objects.get(MESH_NAME)
+def Anim_update(): #Updating shape transformations
+    for obj in bpy.data.objects:
+        if obj.animation_data and obj.animation_data.drivers:
+            for fcurve in obj.animation_data.drivers:
+                fcurve.update()
 
-    if not rig or not mesh:
-        print("❌ Не найден риг или меш. Проверь имена объектов.")
-        return
+def Basis_check(MESH):
+    
+    cloth=MESH
+    
+    if not cloth.data.shape_keys:
+            bpy.ops.object.shape_key_add(from_mix=False)  # создаёт Basis
+            cloth.data.shape_keys.key_blocks[0].name = "Basis"
 
+def cleanup(MESH):
+    
+    mesh=MESH
     #Обнуляем шейп кеи
     for shape in mesh.data.shape_keys.key_blocks:
         
@@ -28,102 +41,59 @@ def cleanup(rigpointer):
             shape.value = 0
         else:
             continue
-    #Обнуляем драйвера
-    for prop_name, prop_value in rig.items():
-        # Пропускаем служебные свойства (начинаются с "_RNA_UI")
-        if prop_name == "_RNA_UI":
-            continue
-                
-        
-        if type(rig[prop_name])==float:
-            rig[prop_name] = 0.0
-        elif type(rig[prop_name])==int:
-            rig[prop_name] = 0
-        else:
-            continue
     
     bpy.context.view_layer.update()
         
-    # Принудительно обновляем драйверы
-    for obj in bpy.data.objects:
-        if obj.animation_data and obj.animation_data.drivers:
-            for fcurve in obj.animation_data.drivers:
-                fcurve.update()
+    Anim_update()
 
-    print("🎉 Готово! Все свойства обработаны.")
+    print("🎉 Done! All shape keys are set to 0.")
 
-mesh = bpy.data.objects.get(MESH_NAME)
+def main(source, target):
+        # Получаем объекты
+    Basis_check(target)
+    
+    cleanup(source)
+    cleanup(target)
+    
+    
+    body = source
+    cloth = target
 
-def save_shape_keys_from_rig(source_obj, target_obj):
-    rig = bpy.context.active_object
-    if not rig or rig.type != 'ARMATURE':
-        print("Выбранный объект не является ригом.")
-        return
+    # Добавляем Surface Deform модификатор к одежде
+    surf_def = cloth.modifiers.new(name="SurfaceDeform", type='SURFACE_DEFORM')
+    surf_def.target = body
 
-    # Обнуляем всё перед записью
-    cleanup(rig)
+    # Привязываем (Bind)
+    bpy.context.view_layer.objects.active = cloth
+    bpy.ops.object.surfacedeform_bind(modifier=surf_def.name)
 
-    # Проверяем наличие модификатора рига
-    armature_mod = next((m for m in source_obj.modifiers if m.type == 'ARMATURE'), None)
-    if not armature_mod:
-        print(f"У объекта '{source_obj.name}' нет модификатора рига.")
-        return
-
-    def update_scene():
-        for obj in bpy.data.objects:
-            if obj.animation_data and obj.animation_data.drivers:
-                for fcurve in obj.animation_data.drivers:
-                    fcurve.update()
-
-    # Перебираем все кастомные свойства рига
-    for prop_name, value in rig.items():
-        
-        if key_words[0]=='None':
+    for key in body.data.shape_keys.key_blocks:
+        if KEY_WORDS[0]=='None':
             pass
-        elif any(p in prop_name for p in key_words):
+        elif any(p in key.name for p in KEY_WORDS):
             pass
         else:
             continue
+        # Активируем шейп‑кей
+        key.value = 1.0
+        Anim_update()
         
-        if isinstance(value, (int, float)):
-            print(f"Обработка свойства: {prop_name}")
-
-            if type(rig[prop_name])==float:
-                rig[prop_name] = 1.0
-            elif type(rig[prop_name])==int:
-                rig[prop_name] = 1
-                
-            update_scene()
-
-            # Применяем join as shape key
-            bpy.ops.object.select_all(action='DESELECT')
-            source_obj.select_set(True)
-            target_obj.select_set(True)
-            bpy.context.view_layer.objects.active = target_obj
-
-            bpy.ops.object.join_shapes()
-            
-            sk = target.data.shape_keys.key_blocks[-1]
-            sk.name = prop_name
-            
-            
-            print(f"✅ Shape key из '{source_obj.name}' добавлен в '{target_obj.name}'")
-
-            # Сбрасываем обратно
-            if type(rig[prop_name])==float:
-                rig[prop_name] = 0.0
-            elif type(rig[prop_name])==int:
-                rig[prop_name] = 0
-                
-            update_scene()
+        # Применяем Surface Deform как шейп‑кей на одежде
         
-        
+        bpy.ops.object.select_all(action='DESELECT')
+        cloth.select_set(True)
+        bpy.context.view_layer.objects.active = cloth
 
-    print("🎉 Все драйвера записаны!")
+        bpy.ops.object.modifier_apply_as_shapekey(keep_modifier=True ,modifier="SurfaceDeform")
+        # Переименовываем последний созданный шейп‑кей одежды
+        new_key = cloth.data.shape_keys.key_blocks[-1]
+        new_key.name = key.name
 
+        # Возвращаем значение обратно
+        key.value = 0.0
+        Anim_update()
+    
+    bpy.ops.object.modifier_remove(modifier="SurfaceDeform")
+    print("🎉 Script completed! All shape keys transfered.")
 
-# Вызов
-if source and target:
-    save_shape_keys_from_rig(source, target)
-else:
-    print("❌ Один из объектов не найден.")
+main(source,target)
