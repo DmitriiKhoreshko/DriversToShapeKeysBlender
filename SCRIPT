@@ -3,11 +3,11 @@
 import bpy
 
 # Укажи имена объектов
-SOURCE_NAME = "Genesis 8 Female Mesh"  # SOURCE MESH ( for example female mesh )
-TARGET_NAME = "Suit Mesh"  # TARGET MESH ( for example clothes )
+SOURCE_NAME = "?"  # SOURCE MESH ( for example female mesh )
+TARGET_NAME = "?"  # TARGET MESH ( for example clothes )
 
 
-KEY_WORDS=['PBM']# укажите, по каким признакам ограничить перенос драйверов, например приписка facs, PBM, eCTRL
+KEY_WORDS=['None']# укажите, по каким признакам ограничить перенос драйверов, например приписка facs, PBM, eCTRL
 
 # Получаем объекты
 source = bpy.data.objects.get(SOURCE_NAME)
